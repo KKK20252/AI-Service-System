@@ -100,7 +100,7 @@ export const SmartDrafter: React.FC<SmartDrafterProps> = ({ onAddToKnowledgeBase
               value={keywords}
               onChange={(e) => setKeywords(e.target.value)}
               placeholder="例如：用户申请退款被拒，因为购买已超过30天。提供下个月续费的9折优惠作为补偿。"
-              className="w-full h-32 border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 outline-none resize-none text-sm"
+              className="w-full h-32 border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 outline-none resize-none text-sm bg-white text-slate-900"
             />
             
             <div className="mt-4">
@@ -108,7 +108,7 @@ export const SmartDrafter: React.FC<SmartDrafterProps> = ({ onAddToKnowledgeBase
               <select 
                 value={tone}
                 onChange={(e) => setTone(e.target.value)}
-                className="w-full border border-slate-300 rounded-lg p-2.5 outline-none text-sm bg-slate-50"
+                className="w-full border border-slate-300 rounded-lg p-2.5 outline-none text-sm bg-slate-50 text-slate-900"
               >
                 <option>专业且共情 (Empathetic & Professional)</option>
                 <option>正式且直接 (Formal & Direct)</option>
@@ -133,7 +133,7 @@ export const SmartDrafter: React.FC<SmartDrafterProps> = ({ onAddToKnowledgeBase
                 onChange={(e) => setNewCorpusText(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="添加规则，如：必须使用敬语 '您'"
-                className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
+                className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 bg-white text-slate-900"
               />
               <button 
                 onClick={handleAddCorpus}

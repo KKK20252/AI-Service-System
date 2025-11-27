@@ -70,7 +70,7 @@ export const SaveToKnowledgeModal: React.FC<SaveToKnowledgeModalProps> = ({
               <select 
                 value={app} 
                 onChange={e => setApp(e.target.value)}
-                className="w-full border border-slate-300 rounded-lg p-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                className="w-full border border-slate-300 rounded-lg p-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none bg-white text-slate-900"
               >
                 {['辞书', 'Test', '阅读', 'Kana', '会话', 'Web', '活动', '通用'].map(opt => (
                   <option key={opt} value={opt}>{opt}</option>
@@ -83,7 +83,7 @@ export const SaveToKnowledgeModal: React.FC<SaveToKnowledgeModalProps> = ({
                 type="text" 
                 value={category}
                 onChange={e => setCategory(e.target.value)}
-                className="w-full border border-slate-300 rounded-lg p-2 text-sm focus:border-indigo-500 outline-none"
+                className="w-full border border-slate-300 rounded-lg p-2 text-sm focus:border-indigo-500 outline-none bg-white text-slate-900"
               />
             </div>
           </div>
@@ -94,7 +94,7 @@ export const SaveToKnowledgeModal: React.FC<SaveToKnowledgeModalProps> = ({
               type="text" 
               value={question}
               onChange={e => setQuestion(e.target.value)}
-              className="w-full border border-slate-300 rounded-lg p-2 text-sm focus:border-indigo-500 outline-none"
+              className="w-full border border-slate-300 rounded-lg p-2 text-sm focus:border-indigo-500 outline-none bg-white text-slate-900"
             />
           </div>
 
@@ -104,7 +104,7 @@ export const SaveToKnowledgeModal: React.FC<SaveToKnowledgeModalProps> = ({
               value={answer}
               onChange={e => setAnswer(e.target.value)}
               rows={2}
-              className="w-full border border-slate-300 rounded-lg p-2 text-sm focus:border-indigo-500 outline-none resize-none"
+              className="w-full border border-slate-300 rounded-lg p-2 text-sm focus:border-indigo-500 outline-none resize-none bg-white text-slate-900"
             />
           </div>
 
@@ -117,7 +117,7 @@ export const SaveToKnowledgeModal: React.FC<SaveToKnowledgeModalProps> = ({
               value={optimizedAnswer}
               onChange={e => setOptimizedAnswer(e.target.value)}
               rows={4}
-              className="w-full border border-indigo-200 bg-indigo-50/50 rounded-lg p-2 text-sm focus:border-indigo-500 outline-none resize-none"
+              className="w-full border border-indigo-200 bg-indigo-50/50 rounded-lg p-2 text-sm focus:border-indigo-500 outline-none resize-none text-slate-900"
             />
           </div>
 
@@ -125,7 +125,7 @@ export const SaveToKnowledgeModal: React.FC<SaveToKnowledgeModalProps> = ({
              <label className="block text-xs font-bold text-slate-500 mb-1">频率</label>
              <div className="flex gap-4">
                {['高', '中', '低'].map(f => (
-                 <label key={f} className="flex items-center gap-2 text-sm cursor-pointer">
+                 <label key={f} className="flex items-center gap-2 text-sm cursor-pointer text-slate-700">
                    <input 
                     type="radio" 
                     name="frequency" 

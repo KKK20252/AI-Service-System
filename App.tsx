@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
 import { KnowledgeBase } from './components/KnowledgeBase';
@@ -9,8 +9,8 @@ import { AppSection, KnowledgeItem } from './types';
 const App: React.FC = () => {
   const [currentSection, setCurrentSection] = useState<AppSection>(AppSection.DASHBOARD);
   
-  // Shared Knowledge Base State
-  const [knowledgeItems, setKnowledgeItems] = useState<KnowledgeItem[]>([
+  // Default Initial Data
+  const defaultItems: KnowledgeItem[] = [
     { 
       id: '1', 
       app: '辞书', 
@@ -33,10 +33,42 @@ const App: React.FC = () => {
       frequency: '中', 
       lastUpdated: '2023-11-02' 
     },
-  ]);
+  ];
+
+  // Initialize state from localStorage if available
+  const [knowledgeItems, setKnowledgeItems] = useState<KnowledgeItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('cs_genius_kb_data');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Ensure all IDs are strings to avoid type mismatch issues causing delete/duplicate bugs
+        return Array.isArray(parsed) ? parsed.map((p: any) => ({...p, id: String(p.id)})) : defaultItems;
+      }
+      return defaultItems;
+    } catch (e) {
+      console.error("Failed to load from local storage", e);
+      return defaultItems;
+    }
+  });
+
+  // Persist to localStorage whenever items change
+  useEffect(() => {
+    try {
+      localStorage.setItem('cs_genius_kb_data', JSON.stringify(knowledgeItems));
+    } catch (e) {
+      console.error("Failed to save to local storage", e);
+    }
+  }, [knowledgeItems]);
 
   const handleAddKnowledgeItems = (newItems: KnowledgeItem[]) => {
-    setKnowledgeItems(prev => [...newItems, ...prev]);
+    setKnowledgeItems(prev => {
+      // Normalize IDs to strings
+      const normalizedNew = newItems.map(i => ({...i, id: String(i.id)}));
+      const existingIds = new Set(prev.map(i => String(i.id)));
+      
+      const filteredNew = normalizedNew.filter(i => !existingIds.has(i.id));
+      return [...filteredNew, ...prev];
+    });
   };
 
   const renderSection = () => {

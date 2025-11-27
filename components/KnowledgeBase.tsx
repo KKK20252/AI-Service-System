@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Upload, FileText, Search, Loader2, Save, Plus, Sparkles, Clipboard, Edit2, Check, X, Filter, FileSpreadsheet, FileType } from 'lucide-react';
+import { Upload, FileText, Search, Loader2, Save, Plus, Sparkles, Clipboard, Edit2, Check, X, Filter, FileSpreadsheet, FileType, Download, UploadCloud, Trash2, AlertTriangle } from 'lucide-react';
 import { extractKnowledgeFromInput } from '../services/geminiService';
 import { KnowledgeItem } from '../types';
 import * as mammoth from 'mammoth';
@@ -19,6 +19,9 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ items, setItems, o
   const [inputText, setInputText] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  // Delete Confirmation State
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -88,6 +91,34 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ items, setItems, o
 
     setParsingFile(true);
     try {
+      // 1. Handle JSON Backup Import (Direct Restore/Share)
+      if (file.name.endsWith('.json')) {
+        const text = await file.text();
+        try {
+          const importedItems = JSON.parse(text) as KnowledgeItem[];
+          if (Array.isArray(importedItems)) {
+             // Assign new IDs to avoid conflicts if needed, or keep strictly if syncing
+             const validatedItems = importedItems.map(item => ({
+               ...item,
+               // Ensure basic fields exist
+               id: item.id || Math.random().toString(36).substr(2, 9),
+               lastUpdated: item.lastUpdated || new Date().toISOString().split('T')[0]
+             }));
+             onAddItems(validatedItems);
+             alert(`成功导入 ${validatedItems.length} 条知识条目！`);
+             setImportMode(false); // Close import mode on successful JSON import
+          } else {
+            alert('JSON 格式不正确，必须是知识条目数组。');
+          }
+        } catch (jsonError) {
+          alert('无法解析 JSON 文件。');
+        }
+        setParsingFile(false);
+        setPreviewImage(null);
+        return; // Exit, do not process as raw text for AI
+      }
+
+      // 2. Handle Image
       if (file.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -96,6 +127,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ items, setItems, o
         };
         reader.readAsDataURL(file);
       } 
+      // 3. Handle Word
       else if (file.name.endsWith('.docx')) {
         const arrayBuffer = await file.arrayBuffer();
         const result = await mammoth.extractRawText({ arrayBuffer });
@@ -103,6 +135,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ items, setItems, o
         setParsingFile(false);
         setPreviewImage(null); 
       } 
+      // 4. Handle Excel
       else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
         const arrayBuffer = await file.arrayBuffer();
         const workbook = XLSX.read(arrayBuffer, { type: 'array' });
@@ -152,6 +185,37 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ items, setItems, o
     }
   };
 
+  const handleExport = () => {
+    const dataStr = JSON.stringify(items, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `cs_genius_backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Triggered when user clicks the trash icon
+  const requestDelete = (id: string) => {
+    setDeleteTargetId(id);
+  };
+
+  // Triggered when user confirms in the modal
+  const confirmDelete = () => {
+    if (deleteTargetId) {
+      setItems(prev => prev.filter(item => String(item.id) !== String(deleteTargetId)));
+      
+      // Clear editing state if the deleted item was being edited
+      if (editingItemId === deleteTargetId) {
+        setEditingItemId(null);
+        setEditValue('');
+      }
+      setDeleteTargetId(null);
+    }
+  };
+
   // Edit Logic
   const startEditing = (item: KnowledgeItem) => {
     setEditingItemId(item.id);
@@ -172,31 +236,40 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ items, setItems, o
   };
 
   return (
-    <div className="p-6 h-full flex flex-col">
+    <div className="p-6 h-full flex flex-col relative">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">知识库</h2>
           <p className="text-slate-500">AI 自动识别问题归类、相似问法，并提供专业话术。</p>
         </div>
-        <button 
-          onClick={() => setImportMode(!importMode)}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-indigo-700 transition"
-        >
-          {importMode ? '取消导入' : <><Plus size={18} /> 添加新知识</>}
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={handleExport}
+            className="bg-white text-slate-700 border border-slate-300 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 transition shadow-sm"
+            title="下载知识库备份 (JSON)"
+          >
+            <Download size={18} /> 备份/导出
+          </button>
+          <button 
+            onClick={() => setImportMode(!importMode)}
+            className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-indigo-700 transition shadow-sm"
+          >
+            {importMode ? '取消导入' : <><Plus size={18} /> 添加新知识</>}
+          </button>
+        </div>
       </div>
 
       {importMode && (
         <div className="mb-8 bg-white p-6 rounded-xl shadow-sm border border-slate-200 animate-in fade-in slide-in-from-top-4">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            从文档或截图导入
+            导入数据
             <span className="text-xs font-normal text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100">
-              支持 Ctrl+V 直接粘贴图片
+              支持 JSON 备份还原、文档解析或截图识别
             </span>
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">上传文件 (图片 / Word / Excel)</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">上传文件</label>
               <div 
                 onClick={() => !parsingFile && fileInputRef.current?.click()}
                 className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition relative
@@ -218,29 +291,29 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ items, setItems, o
                 ) : (
                   <div className="flex flex-col items-center text-slate-400 py-4">
                     <div className="flex gap-2 mb-2">
+                      <UploadCloud size={24} />
                       <FileSpreadsheet size={24} />
                       <FileType size={24} />
-                      <Clipboard size={24} />
                     </div>
-                    <span className="font-medium">点击上传 或 粘贴图片</span>
-                    <span className="text-xs mt-1 text-slate-400">支持 PNG, JPG, DOCX, XLSX</span>
+                    <span className="font-medium text-slate-600">点击上传文件</span>
+                    <span className="text-xs mt-1 text-slate-400">支持 JSON 备份, PNG/JPG, Word, Excel</span>
                   </div>
                 )}
                 <input 
                   type="file" 
                   ref={fileInputRef} 
                   className="hidden" 
-                  accept="image/png, image/jpeg, image/webp, .docx, .xlsx, .xls"
+                  accept=".json, image/png, image/jpeg, image/webp, .docx, .xlsx, .xls"
                   onChange={handleFileUpload}
                   disabled={parsingFile}
                 />
               </div>
             </div>
             <div className="flex flex-col">
-              <label className="block text-sm font-medium text-slate-700 mb-2">文本内容 (支持自动解析填充)</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">AI 智能提取 (针对非 JSON 文档)</label>
               <textarea 
-                className="flex-1 border border-slate-300 rounded-lg p-3 resize-none focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm"
-                placeholder="在此粘贴 FAQ 内容，或上传 Word/Excel 文档后自动显示内容..."
+                className="flex-1 border border-slate-300 rounded-lg p-3 resize-none focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm bg-white text-slate-900"
+                placeholder="此处显示解析后的文本内容... 如果您上传的是 JSON 备份文件，数据将直接导入，无需通过 AI 分析。"
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
               />
@@ -314,6 +387,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ items, setItems, o
                 <th className="p-4 font-semibold text-slate-600 text-sm border-b w-[35%]">回答 (原始 vs AI优化)</th>
                 <th className="p-4 font-semibold text-slate-600 text-sm border-b w-[80px]">频率</th>
                 <th className="p-4 font-semibold text-slate-600 text-sm border-b">更新时间</th>
+                <th className="p-4 font-semibold text-slate-600 text-sm border-b w-[80px] text-center">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -404,6 +478,20 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ items, setItems, o
                     </span>
                   </td>
                   <td className="p-4 text-xs text-slate-400">{item.lastUpdated}</td>
+                  <td className="p-4 text-center">
+                    <button 
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        requestDelete(item.id);
+                      }}
+                      className="h-8 w-8 flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                      title="删除"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -416,6 +504,37 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ items, setItems, o
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteTargetId && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200 p-6">
+              <div className="flex flex-col items-center text-center">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center text-red-600 mb-4">
+                  <AlertTriangle size={24} />
+                </div>
+                <h3 className="text-lg font-bold text-slate-800 mb-2">确认删除？</h3>
+                <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+                  您确定要从知识库中永久删除这条内容吗？<br/>此操作无法撤销。
+                </p>
+                <div className="flex gap-3 w-full">
+                  <button 
+                    onClick={() => setDeleteTargetId(null)}
+                    className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition"
+                  >
+                    取消
+                  </button>
+                  <button 
+                    onClick={confirmDelete}
+                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition shadow-sm"
+                  >
+                    确认删除
+                  </button>
+                </div>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 };
