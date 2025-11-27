@@ -1,0 +1,5 @@
+{
+  "name": "AI 客服助手",
+  "description": "智能客服工作台：管理知识库、会话质检与培训、以及基于 Gemini 的智能话术生成。",
+  "requestFramePermissions": []
+}
